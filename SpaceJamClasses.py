@@ -35,7 +35,7 @@ class SpaceStation(CapsuleCollidableObject):
 
 class Drone(SphereCollideObject):
     def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float):
-            super(Drone, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0, 0, 0), 13.5)
+            super(Drone, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0, 0, 0), 12.5)
             self.modelNode.setPos(posVec)
             self.modelNode.setScale(scaleVec)
     
