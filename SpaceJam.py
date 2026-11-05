@@ -61,25 +61,25 @@ class SpaceJam(ShowBase):
         unitVec = defensePaths.Cloud()
         unitVec.normalize()
         position = unitVec * 500 + centralObject.modelNode.getPos()
-        spaceJamClasses.Drone(self.loader, "./Assets/DroneDefender/DroneDefender.obj", self.render, droneName, "./Assets/DroneDefender/octotoad1_auv.png", position, 5)
+        spaceJamClasses.Drone(self.loader, "./Assets/DroneDefender/DroneDefender.obj", self.render, droneName, "./Assets/DroneDefender/octotoad1_auv.png", position, 10)
 
     def DrawCircleXDefense(self, centralObject, droneName, step, amount):
             unitVec = defensePaths.CircleX(step, amount)
             unitVec.normalize()
             position = unitVec * 500 + centralObject.modelNode.getPos()
-            spaceJamClasses.Drone(self.loader, "./Assets/DroneDefender/DroneDefender.obj", self.render, droneName, "./Assets/DroneDefender/octotoad1_auv.png", position, 5)
+            spaceJamClasses.Drone(self.loader, "./Assets/DroneDefender/DroneDefender.obj", self.render, droneName, "./Assets/DroneDefender/octotoad1_auv.png", position, 10)
     
     def DrawCircleYDefense(self, centralObject, droneName, step, amount):
             unitVec = defensePaths.CircleY(step, amount)
             unitVec.normalize()
             position = unitVec * 500 + centralObject.modelNode.getPos()
-            spaceJamClasses.Drone(self.loader, "./Assets/DroneDefender/DroneDefender.obj", self.render, droneName, "./Assets/DroneDefender/octotoad1_auv.png", position, 5)
+            spaceJamClasses.Drone(self.loader, "./Assets/DroneDefender/DroneDefender.obj", self.render, droneName, "./Assets/DroneDefender/octotoad1_auv.png", position, 10)
     
     def DrawCircleZDefense(self, centralObject, droneName, step, amount):
             unitVec = defensePaths.CircleZ(step, amount)
             unitVec.normalize()
             position = unitVec * 500 + centralObject.modelNode.getPos()
-            spaceJamClasses.Drone(self.loader, "./Assets/DroneDefender/DroneDefender.obj", self.render, droneName, "./Assets/DroneDefender/octotoad1_auv.png", position, 5)
+            spaceJamClasses.Drone(self.loader, "./Assets/DroneDefender/DroneDefender.obj", self.render, droneName, "./Assets/DroneDefender/octotoad1_auv.png", position, 10)
 
     def SetCamera(self):
             self.disableMouse()
