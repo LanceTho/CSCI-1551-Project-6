@@ -1,10 +1,14 @@
 from CollideObjectBase import SphereCollideObject
-from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib
+from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib, CollisionHandlerEvent, CollisionTraverser
 from direct.task.Task import TaskManager
 from typing import Callable
 from direct.task import Task
 from SpaceJamClasses import Missile
 from direct.gui.OnscreenImage import OnscreenImage
+from direct.interval.LerpInterval import LerpFunc
+from direct.particles.ParticleEffect import ParticleEffect
+# Regex module import for string editing
+import re
 
 class SpaceShip(SphereCollideObject):
     def __init__(self, loader: Loader, taskMgr: TaskManager, accept: Callable[[str, Callable], None], modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float):
@@ -26,21 +30,88 @@ class SpaceShip(SphereCollideObject):
 
         self.EnableHUD()
 
+        self.cntExplode = 0
+        self.explodeIntervals = {}
+        self.traverser = CollisionTraverser()
+        self.handler = CollisionHandlerEvent()
+
+        self.handler.addInPattern('into')
+        self.accept('into', self.HandleInto)
+
+        self.SetParticles()
+
     def CheckIntervals(self, task):
         for i in Missile.Interavals:
             # isPlaying returns true or false to see if the missile has gotten to the end of its path
             if not Missile.Interavals[i].isPlaying():
                 # If its path is done, we get rid of everything to do with that missile
-                Missile.cNodes[i].removeNode()
-                Missile.fireModels[i].removeNode()
+                Missile.cNodes[i].detachNode()
+                Missile.fireModels[i].detachNode()
                 del Missile.Interavals[i]
                 del Missile.fireModels[i]
                 del Missile.cNodes[i]
                 del Missile.collisionSolids[i]
-                print(i + " has reached the ned of its fire solution.")
+                print(i + " has reached the end of its fire solution.")
                 # We break because when things are deleted from a dictionary, we have to refactor the dictionary so we can reuse it. This is because when we delete things, there's a gap at that point
                 break
         return Task.cont
+
+    def HandleInto(self, entry):
+        fromNode = entry.getFromNodePath().getName()
+        print("fromNode: " + fromNode)
+        intoNode = entry.getIntoNodePath().getName()
+        print("intoNode: " + intoNode)
+        intoPosition = Vec3(entry.getSurfacePoint(self.render))
+
+        tempVar = fromNode.split('_')
+        print("tempVar: " + str(tempVar))
+        shooter = tempVar[0]
+        print("Shooter: " + str(shooter))
+        tempVar = intoNode.split('-')
+        print("TempVar1: " + str(tempVar))
+        tempVar = intoNode.split('_')
+        print("TempVar2: " + str(tempVar))
+        victim = tempVar[0]
+        print("Victim: " + str(victim))
+
+        pattern = r'[0-9]'
+        strippedString = re.sub(pattern, '', victim)
+
+        if(strippedString == "Drone" or strippedString == "Planet" or strippedString == "Space Station"):
+            print(victim, ' hit at ', intoPosition)
+            self.DestroyObject(victim, intoPosition)
+        print(shooter + ' is DONE.')
+        Missile.Interavals[shooter].finish()
+
+    def DestroyObject(self, hitID, hitPosition):
+        # Unity also has a find method, yet it is very inefficient if used anywhere but the beginning of the program
+        nodeID = self.render.find(hitID)
+        nodeID.detachNode()
+
+        # Start the explosion
+        self.explodeNode.setPos(hitPosition)
+        self.Explode()
+
+    def Explode(self):
+        self.cntExplode += 1
+        tag = 'particles-' + str(self.cntExplode)
+
+        self.explodeIntervals[tag] = LerpFunc(self.ExplodeLight, duration = 4.0)
+        self.explodeIntervals[tag].start()
+
+    def ExplodeLight(self, t):
+        if t == 1.0 and self.explodeEffect:
+            self.explodeEffect.disable()
+
+        elif t == 0:
+            self.explodeEffect.start(self.explodeNode)
+
+    def SetParticles(self):
+        base.enableParticles()
+        self.explodeEffect = ParticleEffect()
+        self.explodeEffect.loadConfig("./Assets/Part-Efx/basic_xpld_efx.ptf")
+        self.explodeEffect.setScale(20)
+        self.explodeNode = render.attachNewNode('ExplosionEffects')
 
     def EnableHUD(self):
         self.Hud = OnscreenImage(image = "./Assets/Hud/ReticleIV.png", pos = Vec3(0, 0, 0), scale = 0.1)
@@ -170,6 +241,7 @@ class SpaceShip(SphereCollideObject):
             
             posVec = self.modelNode.getPos() + inFront # Spawn the missile in front of the nose of the ship
             currentMissile = Missile(loader, "./Assets/Phaser/phaser.egg", render, tag, posVec, 4.0)
+            self.traverser.addCollider(currentMissile.collisionNode, self.handler)
 
             # "fluid = 1" makes collision be checked between the last interval and this interval to make sure that there's nothing in-between both checks that wasn't hit
             Missile.Interavals[tag] = currentMissile.modelNode.posInterval(2.0, travVec, startPos = posVec, fluid = 1)
