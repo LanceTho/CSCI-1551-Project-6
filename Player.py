@@ -1,5 +1,5 @@
 from CollideObjectBase import SphereCollideObject
-from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib, CollisionHandlerEvent, CollisionTraverser
+from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib, CollisionHandlerEvent
 from direct.task.Task import TaskManager
 from typing import Callable
 from direct.task import Task
@@ -11,7 +11,7 @@ from direct.particles.ParticleEffect import ParticleEffect
 import re
 
 class SpaceShip(SphereCollideObject):
-    def __init__(self, loader: Loader, taskMgr: TaskManager, accept: Callable[[str, Callable], None], modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float):
+    def __init__(self, loader: Loader, taskMgr: TaskManager, accept: Callable[[str, Callable], None], modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float, traverser):
         super(SpaceShip, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0, 0, 0), 1)
         self.taskMgr = taskMgr
         self.accept = accept
@@ -29,24 +29,23 @@ class SpaceShip(SphereCollideObject):
         self.taskMgr.add(self.CheckIntervals, 'checkMissiles', 34)
 
         self.EnableHUD()
+        self.SetParticles()
 
         self.cntExplode = 0
         self.explodeIntervals = {}
-        self.traverser = CollisionTraverser()
+        self.traverser = traverser
         self.handler = CollisionHandlerEvent()
 
         self.handler.addInPattern('into')
         self.accept('into', self.HandleInto)
-
-        self.SetParticles()
 
     def CheckIntervals(self, task):
         for i in Missile.Interavals:
             # isPlaying returns true or false to see if the missile has gotten to the end of its path
             if not Missile.Interavals[i].isPlaying():
                 # If its path is done, we get rid of everything to do with that missile
-                Missile.cNodes[i].detachNode()
-                Missile.fireModels[i].detachNode()
+                Missile.cNodes[i].removeNode()
+                Missile.fireModels[i].removeNode()
                 del Missile.Interavals[i]
                 del Missile.fireModels[i]
                 del Missile.cNodes[i]
@@ -61,7 +60,7 @@ class SpaceShip(SphereCollideObject):
         print("fromNode: " + fromNode)
         intoNode = entry.getIntoNodePath().getName()
         print("intoNode: " + intoNode)
-        intoPosition = Vec3(entry.getSurfacePoint(self.render))
+        intoPosition = Vec3(entry.getSurfacePoint(render))
 
         tempVar = fromNode.split('_')
         print("tempVar: " + str(tempVar))
@@ -85,7 +84,7 @@ class SpaceShip(SphereCollideObject):
 
     def DestroyObject(self, hitID, hitPosition):
         # Unity also has a find method, yet it is very inefficient if used anywhere but the beginning of the program
-        nodeID = self.render.find(hitID)
+        nodeID = render.find(hitID)
         nodeID.detachNode()
 
         # Start the explosion
@@ -154,6 +153,29 @@ class SpaceShip(SphereCollideObject):
         self.accept('e-up', self.RollRight, [0])
         # Fires missile
         self.accept('f', self.Fire)
+        self.accept('x', self.Detonate, [1])
+
+    def Detonate(self, keyDown):
+        if keyDown:
+            taskMgr.add(self.ManualExplode, 'detonate')
+        else:
+            taskMgr.remove('detonate')
+
+    def ManualExplode(self, task):
+        for i in Missile.Interavals:
+            x = Missile.Interavals[i].getNode().getX()
+            y = Missile.Interavals[i].getNode().getY()
+            z = Missile.Interavals[i].getNode().getZ()
+            self.explodeNode.setPos(x, y, z)
+            self.Explode()
+            Missile.cNodes[i].removeNode()
+            Missile.fireModels[i].removeNode()
+            del Missile.Interavals[i]
+            del Missile.fireModels[i]
+            del Missile.cNodes[i]
+            del Missile.collisionSolids[i]
+            print(i + " exploded.")
+            break
 
     def LeftTurn(self, keyDown):
         if keyDown:
